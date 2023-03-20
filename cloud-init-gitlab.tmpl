@@ -1,0 +1,28 @@
+#cloud-config:
+# Adds the users to the system and installs Gitlab
+# users can change their password, without prompting for a password
+# no password is set for the users upon their account creation
+
+users:
+  - default
+ %{ for user_key, user_value in users ~}
+ - name: ${user_key}
+    lock_passwd: true
+    shell: /bin/bash
+    ssh_authorized_keys:
+    - ${user_value}
+    sudo: ALL=(ALL) NOPASSWD:/usr/bin/passwd
+ %{ endfor ~}
+
+runcmd:
+ - url="https://${gitlab_domain}"
+ - sudo apt-get update
+ - sudo apt-get install -y curl openssh-server ca-certificates perl
+ - curl https://packages.gitlab.com/install/repositories/gitlab/gitlab-ce/script.deb.sh|sudo bash
+ - sudo EXTERNAL_URL="$url" apt-get install gitlab-ce
+ - sudo gitlab-ctl reconfigure
+
+power_state:
+  mode: reboot
+  delay: 1
+  message: Rebooting after installation
